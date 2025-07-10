@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload - Gender & Age Detection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg-light: #f4f4f4;
+      --bg-dark: #121212;
+      --text-light: #000;
+      --text-dark: #fff;
+      --primary: #007bff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: {{ 'var(--bg-dark)' if theme == 'dark' else 'var(--bg-light)' }};
+      color: {{ 'var(--text-dark)' if theme == 'dark' else 'var(--text-light)' }};
+      transition: background 0.3s, color 0.3s;
+    }
+
+    nav {
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 30px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .nav-links a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-left: 15px;
+    }
+
+    .btn-icon img {
+      height: 30px;
+      filter: {{ 'invert(1)' if theme == 'dark' else 'invert(0)' }};
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 30px 15px;
+    }
+
+    .card {
+      background: {{ '#1e1e1e' if theme == 'dark' else '#fff' }};
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 30px;
+    }
+
+    .form-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    input[type="file"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .btn-group {
+      margin-top: 20px;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-submit, .btn-reset {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-reset {
+      background: #dc3545;
+    }
+
+    .preview-img {
+      max-width: 100%;
+      margin-top: 20px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .predictions {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    .flash {
+      color: limegreen;
+      font-weight: bold;
+      text-align: center;
+      margin: 15px 0;
+    }
+
+    .timestamp {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/upload">Upload</a>
+      <a href="/admin">Admin</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-icon" onclick="toggleTheme()">
+        <img src="{{ url_for('static', filename='icons/darkmode.png') }}" alt="Toggle Theme" />
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h2>📄 Upload an Image for Gender & Age Detection</h2>
+
+      <form class="form-section" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*" required />
+        <button type="submit" class="btn-submit">Detect</button>
+      </form>
+
+      {% if b64_preview %}
+        <img class="preview-img" src="data:image/jpeg;base64,{{ b64_preview }}" alt="Preview" />
+      {% endif %}
+
+      {% if predictions %}
+        <div class="predictions">
+          <h3>Predictions:</h3>
+          <ul>
+            {% for pred in predictions %}
+              <li>{{ pred }}</li>
+            {% endfor %}
+          </ul>
+          {% if timestamp %}
+            <div class="timestamp">Uploaded at {{ timestamp }}</div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if b64_preview %}
+        <div class="btn-group">
+          <form method="POST" action="/reset_upload">
+            <button type="submit" class="btn-reset">❌ Reset</button>
+          </form>
+        </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+
+  <script>
+    function toggleTheme() {
+      fetch("/toggle_theme", { method: "POST" })
+        .then(res => res.json())
+        .then(() => location.reload());
+    }
+  </script>
+</body>
+</html>

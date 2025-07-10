@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gender & Age Detection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg-light: #f4f4f4;
+      --bg-dark: #121212;
+      --text-light: #000;
+      --text-dark: #fff;
+      --primary: #007bff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: {{ '#121212' if theme == 'dark' else '#f4f4f4' }};
+      color: {{ '#fff' if theme == 'dark' else '#000' }};
+      transition: background 0.3s, color 0.3s;
+    }
+
+    nav {
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 30px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .nav-links a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-left: 15px;
+    }
+
+    .btn-icon img {
+      height: 30px;
+      filter: {{ 'invert(1)' if theme == 'dark' else 'invert(0)' }};
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 30px 15px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+
+    .card {
+      background: {{ '#1e1e1e' if theme == 'dark' else '#fff' }};
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: 0.3s;
+    }
+
+    h2, h3 {
+      margin-top: 0;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .controls .btn-icon img {
+      height: 40px;
+    }
+
+    #videoFeed, .captured-img {
+      max-width: 100%;
+      width: 100%;
+      border-radius: 10px;
+      border: 2px solid #ccc;
+    }
+
+    .captured-img {
+      margin-top: 15px;
+    }
+
+    a.download-link {
+      display: inline-block;
+      margin-top: 10px;
+      text-decoration: none;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    @media (min-width: 768px) {
+      .container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/upload">Upload</a>
+      <a href="/admin">Admin</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-icon" onclick="toggleTheme()">
+        <img src="{{ url_for('static', filename='icons/darkmode.png') }}" alt="Toggle Theme" />
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Live Camera Feed -->
+    <div class="card">
+      <h2>🔍 Real-Time Gender & Age Predictor</h2>
+      <img
+        id="videoFeed"
+        src="{{ url_for('video') }}"
+        alt="Camera Stream"
+        style="max-height: 300px; object-fit: contain;"
+        onerror="this.onerror=null; this.src='{{ url_for('static', filename='icons/camera_stream.png') }}';"
+      />
+      <div class="controls">
+        <button class="btn-icon" onclick="startCamera()">
+          <img src="{{ url_for('static', filename='icons/detect.png') }}" alt="Detect" />
+        </button>
+        <button class="btn-icon" onclick="stopCamera()">
+          <img src="{{ url_for('static', filename='icons/stop.png') }}" alt="Stop" />
+        </button>
+        <button class="btn-icon" onclick="capture()">
+          <img src="{{ url_for('static', filename='icons/capture.png') }}" alt="Capture" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Result Section -->
+    <div class="card">
+      {% if captured_image %}
+        <h3>Captured Image</h3>
+        <img class="captured-img" src="{{ url_for('static', filename=captured_image) }}" />
+        <a class="download-link" href="{{ url_for('download') }}">Download</a>
+        <form method="post" action="/delete_image" style="margin-top:10px;">
+          <button class="btn-icon" type="submit">
+            <img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Delete" />
+          </button>
+        </form>
+      {% else %}
+        <h3>No Captured Image</h3>
+        <p>Click <strong>Capture</strong> after face detection to save a snapshot.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <script>
+    function startCamera() {
+      fetch("/start").then(() => {
+        document.getElementById("videoFeed").src = "/video?" + new Date().getTime();
+      });
+    }
+
+    function stopCamera() {
+      fetch("/stop").then(() => {
+        document.getElementById("videoFeed").src = "{{ url_for('static', filename='icons/camera_stream.png') }}";
+      });
+    }
+
+    function capture() {
+      fetch("/capture").then(() => {
+        location.reload();
+      });
+    }
+
+    function toggleTheme() {
+      fetch("/toggle_theme", { method: "POST" })
+        .then(res => res.json())
+        .then(() => location.reload());
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-light: #f4f4f4;
+      --bg-dark: #121212;
+      --text-light: #000;
+      --text-dark: #fff;
+      --primary: #007bff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: {{ 'var(--bg-dark)' if theme == 'dark' else 'var(--bg-light)' }};
+      color: {{ 'var(--text-dark)' if theme == 'dark' else 'var(--text-light)' }};
+      transition: background 0.3s, color 0.3s;
+    }
+
+    nav {
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 30px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .nav-links a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .nav-actions button img {
+      height: 30px;
+      filter: {{ 'invert(1)' if theme == 'dark' else 'invert(0)' }};
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: {{ '#1e1e1e' if theme == 'dark' else '#fff' }};
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    #deleteMsg {
+      color: green;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/upload">Upload</a>
+      <a href="/admin">Admin</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-icon" onclick="toggleTheme()">
+        <img src="{{ url_for('static', filename='icons/darkmode.png') }}" alt="Toggle Theme">
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Admin Panel</h2>
+    <button onclick="deleteHistory()">Delete All History</button>
+    <div id="deleteMsg"></div>
+
+    <table>
+      <tr>
+        {% for header in headers %}
+          <th>{{ header }}</th>
+        {% endfor %}
+      </tr>
+      {% for row in logs %}
+        <tr>
+          {% for cell in row %}
+            <td>{{ cell }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <script>
+    function deleteHistory() {
+      fetch("/delete_history", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success") {
+            document.getElementById("deleteMsg").innerText = "History cleared successfully!";
+            setTimeout(() => location.reload(), 1000);
+          }
+        });
+    }
+
+    function toggleTheme() {
+      fetch("/toggle_theme", { method: "POST" })
+        .then(res => res.json())
+        .then(() => location.reload());
+    }
+  </script>
+
+</body>
+</html>
