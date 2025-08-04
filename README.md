@@ -1,6 +1,3 @@
-# Gender-Age-Detector
-A Flask-based web application that uses deep learning to detect gender and age from faces in live camera feeds and uploaded images. 
-This are the Models (age_net.caffemodel, gender_net.caffemodel) you can get it from the HuggingFace.
 # Gender & Age Detector 👤📷
 
 A Flask-based web application that uses deep learning to detect gender and age from a live webcam stream or uploaded images. It provides real-time predictions, supports dark mode, image capture, admin history view, and management features.
