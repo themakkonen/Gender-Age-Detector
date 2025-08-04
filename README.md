@@ -1,7 +1,7 @@
 # Gender & Age Detector 👤📷
 
 A Flask-based web application that uses deep learning to detect gender and age from a live webcam stream or uploaded images. It provides real-time predictions, supports dark mode, image capture, admin history view, and management features.
-C:\Users\harsh\Pictures\Screenshots\Screenshot (1).png
+
 
 
 ## 🔍 Features
