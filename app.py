@@ -10,6 +10,15 @@ import base64
 app = Flask(__name__)
 app.secret_key = 'secret-key-for-session'
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1MB limit
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+@app.after_request
+def add_header(response):
+    # Prevent browser caching to avoid '304 Not Modified' statuses which can be confusing
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 # Load Models
 age_net = cv2.dnn.readNetFromCaffe("deploy_age.prototxt", "age_net.caffemodel")
@@ -56,8 +65,18 @@ def index():
 def start():
     global video_streaming, cap
     if not video_streaming:
-        cap = cv2.VideoCapture(0)
-        video_streaming = True
+        print("[INFO] Attempting to access webcam...")
+        # Try DirectShow first (often fixes Windows camera issues), fallback to default
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        if not cap.isOpened():
+            cap = cv2.VideoCapture(0)
+        
+        if not cap.isOpened():
+            print("[ERROR] Webcam could not be opened. Check if it's connected or if Windows Privacy Settings are blocking Python/Command Prompt from using the camera.")
+            video_streaming = False
+        else:
+            print("[INFO] Webcam successfully opened.")
+            video_streaming = True
     return ("", 204)
 
 @app.route('/stop')
@@ -76,6 +95,8 @@ def gen_frames():
             break
         success, frame = cap.read()
         if not success:
+            print("[ERROR] Failed to read frame from webcam.")
+            video_streaming = False
             break
         face_count = 0
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -84,6 +105,8 @@ def gen_frames():
             face_count += 1
             x1, y1, x2, y2 = max(0, x-20), max(0, y-20), min(frame.shape[1], x+w+20), min(frame.shape[0], y+h+20)
             face_img = frame[y1:y2, x1:x2].copy()
+            if face_img.size == 0:
+                continue
             blob = cv2.dnn.blobFromImage(face_img, 1, (227, 227), (78.426, 87.768, 114.896), swapRB=False)
             gender_net.setInput(blob)
             gender = GENDER_LIST[gender_net.forward().argmax()]
@@ -102,7 +125,7 @@ def video():
     if video_streaming and cap is not None:
         return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
-        return send_file('static/icons/camera_stream.png', mimetype='image/jpeg')
+        return send_file('static/icons/camera_stream.png', mimetype='image/png')
 
 @app.route('/capture')
 def capture():
@@ -118,6 +141,8 @@ def capture():
     faces = face_cascade.detectMultiScale(gray, 1.1, 4)
     for (x, y, w, h) in faces:
         face_img = frame_store[y:y+h, x:x+w].copy()
+        if face_img.size == 0:
+            continue
         blob = cv2.dnn.blobFromImage(face_img, 1, (227, 227), (78.426, 87.768, 114.896), swapRB=False)
         gender_net.setInput(blob)
         gender = GENDER_LIST[gender_net.forward().argmax()]
@@ -158,7 +183,15 @@ def delete_history():
 def admin():
     with open(log_file, "r") as f:
         rows = list(csv.reader(f))
-    return render_template("admin.html", logs=rows[1:], headers=rows[0], theme=session["theme"])
+    
+    if not rows:
+        headers = ["Timestamp", "Gender", "Age"]
+        logs = []
+    else:
+        headers = rows[0]
+        logs = rows[1:]
+
+    return render_template("admin.html", logs=logs, headers=headers, theme=session["theme"])
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -186,6 +219,8 @@ def upload():
 
         for (x, y, w, h) in faces:
             face_img = frame[y:y+h, x:x+w].copy()
+            if face_img.size == 0:
+                continue
             blob = cv2.dnn.blobFromImage(face_img, 1, (227, 227), (78.426, 87.768, 114.896), swapRB=False)
             gender_net.setInput(blob)
             gender = GENDER_LIST[gender_net.forward().argmax()]
